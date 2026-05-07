@@ -1,0 +1,53 @@
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import { createServer } from '../src/server.ts';
+
+const app = createServer();
+
+async function makeARequest(question: string, sellerId: number) {
+    return await app.inject({
+        method: 'POST',
+        url: '/chat',
+        payload: {
+            question,
+            sellerId
+        },
+    });
+}
+
+describe('Assistente de Vendas - E2E Tests', async () => {
+    //o . skip é para pular o teste
+    it('Schedule appointment - Success', async () => {
+        const response = await makeARequest(
+            `Gostaria de agendar uma reunião de apresentação de produto para dia 07 de maio as 10h,  com o Sr. João Silva`,
+           1
+            
+        )
+
+        console.log('Schedule Success Response:', response.body);
+
+        assert.equal(response.statusCode, 200);
+         const body = JSON.parse(response.body);
+         assert.equal(body.intent, 'schedule');
+         assert.equal(body.actionSuccess, true);
+    });
+
+
+   /* it('Cancel appointment - Success', async () => {
+
+         await makeARequest(
+            `Sou Joao da Silva e quero agendar uma consulta com ${professionals.at(1)?.name} para hoje às 14h`
+        )
+
+        const response = await makeARequest(
+            `Cancele minha consulta com ${professionals.at(1)?.name} que tenho hoje às 14h, me chamo Joao da Silva`
+        );
+
+        console.log('Cancel Success Response:', response.body);
+
+        assert.equal(response.statusCode, 200);
+         const body = JSON.parse(response.body);
+         assert.equal(body.intent, 'cancel');
+         assert.equal(body.actionSuccess, true);
+    });*/
+});
