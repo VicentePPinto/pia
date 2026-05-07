@@ -7,7 +7,7 @@ export class AppointmentService {
   private clientRepo = new ClientRepository();
   private appointmentRepository = new AppointmentRepository();
 
-  async bookAppointment(
+  async meetAppointment(
     sellerId: number,
     date: Date,
     clientName: string,
@@ -119,6 +119,35 @@ export class AppointmentService {
 
     return { success: true };
   }
+  async updateMeeting(sellerId: number,
+    clientName: string,
+    oldDate: Date, newDate: Date): Promise<ServiceResult> {
+      const clients = await this.clientRepo.findByName(clientName);
+
+      if (clients.length === 0) {
+        return { success: false, code: 'CLIENT_NOT_FOUND' };
+      }
+
+      const clientId = clients.id;
+
+
+      const oldMetting = await this.appointmentRepository.findBySellerClientAndDatetime(
+        sellerId,
+        clientId,
+        oldDate
+      );
+      if (!oldMetting) {
+        return { success: false, code: 'APPOINTMENT_NOT_FOUND' };
+      }
+      const updated = await this.appointmentRepository.update(oldMetting.id, newDate);
+      if (!updated) {
+        return { success: false, code: 'UPDATE_FAILED' };
+      }
+      return {
+        success: true,
+        data: updated
+      };
+    }
 
   async cancelAppointment(
     sellerId: number,

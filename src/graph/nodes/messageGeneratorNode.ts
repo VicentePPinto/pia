@@ -5,7 +5,7 @@ import { AIMessage } from '@langchain/core/messages';
 import { ScheduleMessages } from '../../domain/messages/scheduleMessages.ts';
 import { CancelMessages } from '../../domain/messages/cancelMessages.ts';
 import { CommonMessages } from '../../domain/messages/commonMessages.ts';
-
+import { UpdateMessages } from '../../domain/messages/updateMessages.ts';
 export function createMessageGeneratorNode() {
 
   return async (state: GraphState): Promise<Partial<GraphState>> => {
@@ -44,7 +44,18 @@ export function createMessageGeneratorNode() {
         message = ScheduleMessages.datetimeMissing();
       }
     }
+    // UPDATE
+    if (state.intent === 'update') {
+      if (state.actionSuccess) {
 
+        message = UpdateMessages.success(
+          state.clientName!,
+          state.olddate!,
+          state.newdate!
+
+        );
+      }
+    }
     // CANCEL
     if (state.intent === 'cancel') {
 

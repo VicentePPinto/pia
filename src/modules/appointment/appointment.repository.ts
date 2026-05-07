@@ -36,6 +36,18 @@ export class AppointmentRepository {
     const result = await pool.query(query, [clientId, datetime]);
     return result.rows[0];
   }
+  async findBySellerClientAndDatetime(sellerId: number, clientId: number, datetime: Date) {
+    const query = `
+      SELECT * FROM appointments
+      WHERE seller_id = $1
+      AND client_id = $2
+      AND datetime = $3
+      LIMIT 1
+    `;
+
+    const result = await pool.query(query, [sellerId, clientId, datetime]);
+    return result.rows[0];
+  }
   async checkSellerConflict(sellerId: number, datetime: Date) {
   const result = await pool.query(
     `SELECT 1 FROM appointments
@@ -92,6 +104,22 @@ async checkClientConflict(clientId: number, datetime: Date) {
       data.sellerId,
       data.datetime,
       data.reason || null
+    ];
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  }
+  async update (id: number, newdatetime: Date){
+    const query = `
+      UPDATE appointments
+      SET datetime = $1
+      WHERE id = $2
+      RETURNING *
+    `;
+
+    const values = [
+      newdatetime,
+      id
     ];
 
     const result = await pool.query(query, values);

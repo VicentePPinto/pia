@@ -2,18 +2,20 @@ import { AppointmentService } from '../../services/appointmentService.ts';
 import type { GraphState } from '../graph.ts';
 import { z } from 'zod/v3';
 
-const ScheduleRequiredFieldSchema = z.object({
+const UpdaterRequiredFieldSchema = z.object({
   sellerId: z.number({ required_error: 'Seller ID is required' }),
-  datetime: z.string({ required_error: 'Appointment datetime is required' }),
+  olddate: z.string({ required_error: 'Appointment datetime is required' }),
+  newdate: z.string({ required_error: 'New meeting datetime is required' }),
   clientName: z.string({ required_error: 'Client name is required' })
+ // clientId: z.number({ required_error: 'Client ID is required' })
 });
 
-export function createSchedulerNode(appointmentService: AppointmentService) {
+export function createUpdaterNode(appointmentService: AppointmentService) {
   return async (state: GraphState): Promise<Partial<GraphState>> => {
-    console.log(`📅 Scheduling appointment...`);
+    console.log(`📅 Updating appointment...`);
 
     try {
-      const validation = ScheduleRequiredFieldSchema.safeParse(state);
+      const validation = UpdaterRequiredFieldSchema.safeParse(state);
 
       if (!validation.success) {
         const errorMessages = validation.error.errors.map(e => e.message).join(', ');
@@ -27,11 +29,11 @@ export function createSchedulerNode(appointmentService: AppointmentService) {
         };
       }
 
-      const result = await appointmentService.meetAppointment(
+      const result = await appointmentService.updateMeeting(
         validation.data.sellerId,
-        new Date(validation.data.datetime),
         validation.data.clientName,
-        state.reason ?? 'General Consultation'
+        new Date(validation.data.olddate),
+        new Date(validation.data.newdate)
       );
 
       // 🔴 NOVO: tratar retorno estruturado
@@ -46,7 +48,7 @@ export function createSchedulerNode(appointmentService: AppointmentService) {
         };
       }
 
-      console.log(`✅ Appointment scheduled successfully`);
+      console.log(`✅ Appointment updated successfully`);
 
       return {
         ...state,
@@ -56,12 +58,12 @@ export function createSchedulerNode(appointmentService: AppointmentService) {
 
     } catch (error) {
       console.log(error);
-      console.log(`❌ Scheduling failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(`❌ Updating failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 
       return {
         ...state,
         actionSuccess: false,
-        actionError: error instanceof Error ? error.message : 'Scheduling failed',
+        actionError: error instanceof Error ? error.message : 'Updating failed',
         error: 'INTERNAL_ERROR'
       };
     }

@@ -4,6 +4,8 @@ import { z } from 'zod';
 export const IntentSchema = z.object({
   intent: z.enum(['schedule', 'cancel', 'unknown','update']).describe('A intenção do usuário'),
   datetime: z.string().describe('Data e hora da reunião em formato ISO'),
+  olddate: z.string().describe('Data e hora da reunião que foi agendada em formato ISO'),
+  newdate: z.string().describe('Data e hora da reunião a ser alterada em formato ISO'),
   clientName: z.string().describe('Nome do Cliente extraído da frase'),
   reason: z.string().optional().describe('Motivo da agenda (para agendamento)'),
 });
@@ -53,6 +55,8 @@ Exemplos:
 Se não houver horário, usar 00:00.
 Se não houver data, NÃO inventar.
 `,
+oldDate: 'Para intenções de atualização, extrair a data original da reunião que se deseja alterar.',
+newDate: 'Para intenções de atualização, extrair a nova data proposta para a reunião.',
       reason: 'Extrair o motivo da reunião, se mencionado.'
     },
 
@@ -73,13 +77,14 @@ Se não houver data, NÃO inventar.
     datetime: '2026-05-07T10:00:00.000Z'
   }
 },{
-        input: { question: 'Agende uma reunião com João amanhã às 14h' },
-        output: {
-          intent: 'schedule',
-          clientName: 'João',
-          datetime: '2026-05-08T14:00:00.000Z'
-        }
-      },
+  input: { question: 'preciso reagendar a reunião com o Sr. João para dia 07 de maio das 11h para as 12h' },
+  output: {
+    intent: 'update',
+    clientName: 'João',
+    olddate: '2026-05-07T10:00:00.000Z',
+    newdate: '2026-05-07T12:00:00.000Z'
+  }
+},
       {
         input: { question: 'Cancele minha reunião com o Carlos amanhã' },
         output: {

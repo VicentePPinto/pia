@@ -11,6 +11,7 @@ import { createSchedulerNode } from './nodes/schedulerNode.ts';
 import { createCancellerNode } from './nodes/cancellerNode.ts';
 import { createIdentifyIntentNode} from "./nodes/identifyIntentNode.ts";
 import { createMessageGeneratorNode } from "./nodes/messageGeneratorNode.ts";
+import { createUpdaterNode } from "./nodes/updaterNode.ts";
 
 import { z } from "zod/v3";
 import { OpenRouterService } from "../services/openRouterService.ts";
@@ -24,12 +25,13 @@ const AppointmentStateAnnotation = z.object({
   clientName: z.string().optional(),
   clientId: z.number().optional(),
 
-  intent: z.enum(['schedule', 'cancel', 'unknown']).optional(),
+  intent: z.enum(['schedule', 'cancel', 'unknown','update']).optional(),
   sellerId: z.number().optional(),
   sellersName: z.string().optional(),
   datetime: z.string().optional(),
   reason: z.string().optional(),
-
+  olddate: z.string().optional(),
+  newdate: z.string().optional(),
   actionSuccess: z.boolean().optional(),
   actionError: z.string().optional(),
   appointmentData: z.any().optional(),
@@ -48,6 +50,7 @@ export function buildAppointmentGraph(llmClient: OpenRouterService, appointmentS
   })
     .addNode('identifyIntent', createIdentifyIntentNode(llmClient))
     .addNode('schedule', createSchedulerNode(appointmentService))
+    .addNode('update', createUpdaterNode(appointmentService))
     .addNode('cancel', createCancellerNode(appointmentService))
     .addNode('message', createMessageGeneratorNode())
 
@@ -67,12 +70,14 @@ export function buildAppointmentGraph(llmClient: OpenRouterService, appointmentS
       },
       {
         schedule: 'schedule',
+        update: 'update',
         cancel: 'cancel',
         message: 'message',
       }
     )
 
     .addEdge('schedule', 'message')
+    .addEdge('update', 'message')
     .addEdge('cancel', 'message')
     .addEdge('message', END);
 

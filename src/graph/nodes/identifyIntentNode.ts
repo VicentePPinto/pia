@@ -64,7 +64,17 @@ export function createIdentifyIntentNode(llmClient: OpenRouterService) {
           };
         }
       }
-
+      if(intentData.intent === 'update') {
+        return {
+        ...state,
+        intent: intentData.intent,
+        clientName: intentData.clientName,
+        datetime: intentData.datetime,
+        olddate: intentData.olddate,
+        newdate: intentData.newdate,
+        reason: intentData.reason
+      };
+      }
       // 🔴 5. RETORNO CONTROLADO
       return {
         ...state,
