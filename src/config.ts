@@ -22,7 +22,7 @@ console.assert(process.env.OPENROUTER_API_KEY, 'OPENROUTER_API_KEY is not set in
 export const config: ModelConfig = {
   apiKey: process.env.OPENROUTER_API_KEY!,
   httpReferer: '',
-  xTitle: 'IA Devs - Prompt Chaining Article Generator',
+  xTitle: 'PIA - Personal Intelligent Assistant',
   models: [
     'nvidia/nemotron-3-super-120b-a12b:free'
   ],

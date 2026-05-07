@@ -12,7 +12,7 @@ export type IntentData = z.infer<typeof IntentSchema>;
 
 export const getSystemPrompt = () => {
   return JSON.stringify({
-    role: 'Classificador de intenções para agendamento de reuniões',
+    role: 'Classificador de intenções para agendamento, modificações ou cancelamento de reuniões',
     task: 'Identificar a intenção do usuário e extrair informações estruturadas da solicitação.',
     current_date: new Date().toISOString(),
 
