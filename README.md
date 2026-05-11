@@ -1,297 +1,580 @@
-# Prompt Chaining Article Generator
+# PIA — Personal Intelligent Assistant
 
-Demonstration of **prompt engineering** with LangChain using structured outputs and conditional edges to generate high-quality technical articles through multiple AI agents reviewing each other.
+Assistente virtual inteligente para agendamento de reuniões comerciais utilizando IA generativa, LangGraph, workflows orientados a estado e PostgreSQL.
 
-## 🎯 Goals
+O projeto nasceu como evolução prática do projeto apresentado por Erick Wendel no módulo 2 da formação da UNIPDS, onde o exemplo original consistia em um agendador de consultas médicas com menos nodes e sem persistência real em banco de dados.
 
-This project exemplifies:
-- **Structured Outputs**: Using Zod schemas to prevent hallucinations
-- **Prompt Chaining**: Three-stage pipeline with quality feedback loop
-- **Minimal Code**: Let AI agents review each other instead of complex logic
-- **Real API Testing**: Integration tests with actual OpenRouter calls
-- **Quality Assurance**: Automatic retry until score ≥ 8/10
+A partir desse conceito inicial, o projeto evoluiu para uma arquitetura muito mais próxima de um cenário corporativo real:
 
-## Features
+- separação clara entre IA e domínio;
+- persistência real em PostgreSQL;
+- workflows escaláveis;
+- validações operacionais;
+- controle de agenda;
+- detecção de conflitos;
+- arquitetura preparada para evolução multi-agent;
+- base para agentes corporativos orientados a dados.
 
-- 🎨 **3-Stage Pipeline**: Plan → Draft → Review (with quality loop)
-- 📊 **Structured Validation**: Zod schemas at every step
-- 🔄 **Conditional Edges**: Retry review until quality threshold met
-- 📝 **Template System**: JSON prompts with variable interpolation
-- 🧪 **Real API Tests**: No mocks, actual LLM calls
-- 📁 **Organized Outputs**: `outputs/timestamp-topic/output.md`
+---
 
-## Architecture
+# 🎯 Objetivos do Projeto
 
-### LangGraph Workflow
+Este projeto demonstra na prática:
 
-```
-START → plan → draft → review ⟲ (if score < 8) → END
-         ↓       ↓       ↓
-      outline  article  final + scores
-```
+- LangGraph Workflows
+- Structured Outputs com Zod
+- Engenharia de Prompt aplicada
+- Arquitetura orientada a domínio
+- IA desacoplada das regras de negócio
+- Controle operacional de agentes
+- Persistência relacional
+- Repository Pattern
+- Orquestração de fluxos inteligentes
+- Testes E2E reais sem mocks da LLM
 
-### Project Structure
+---
 
-```
+# 🚀 Funcionalidades
+
+- 📅 Agendamento inteligente de reuniões
+- ❌ Cancelamento de reuniões
+- 🔄 Estrutura preparada para atualização de reuniões
+- 🧠 Extração de intenção via IA
+- 👤 Busca inteligente de clientes
+- 🔎 Tratamento de múltiplos clientes
+- ⏰ Verificação de conflitos de agenda
+- 💬 Respostas contextualizadas
+- 🧪 Testes E2E integrados
+- 🐳 PostgreSQL via Docker
+- 🧱 Estrutura escalável para novos agentes
+
+---
+
+# 🏗️ Arquitetura
+
+O projeto foi desenvolvido utilizando o princípio:
+
+## “A IA interpreta. O domínio governa.”
+
+A LLM NÃO toma decisões críticas.
+
+A LLM:
+- interpreta;
+- extrai contexto;
+- entende intenção;
+- auxilia comunicação.
+
+O backend:
+- valida;
+- governa;
+- persiste;
+- controla fluxo;
+- aplica regras.
+
+---
+
+# 🔄 Workflow do LangGraph
+
+```txt
+START
+   ↓
+identifyIntent
+   ↓
+┌──────────────────────┬──────────────────────┬──────────────────────┐
+↓                      ↓                      ↓
+schedule               cancel                 message
+↓                      ↓
+message                message
+↓
+END
+---
+
+# 📁 Estrutura do Projeto
+
+```txt
 src/
-  ├── config.ts                 
-  ├── index.ts                  
-  ├── server.ts                 
-  ├── graph/
-  │   ├── graph.ts             
-  │   ├── factory.ts           
-  │   └── nodes/
-  │       ├── cancellerNode.ts      
-  │       ├── identifyintentNode.ts     
-  │       ├── messageGeneratorNode.ts
-  │       ├── schedulerNode.ts    
-  ├── services/
-  │   └── openRouterService.ts  
-  │   └── appointmentService.ts 
-  ├──prompts/
-     └── v1/
-        ├── identifyIntent.json
-        ├── messageGenerator.json            
+├── config.ts
+├── index.ts
+├── server.ts
+│
+├── infra/
+│   └── db.ts
+│   └── scripts/
+│       ├── schema.sql
+│
+├── domain/
+│   └── messages/
+│       ├── cancelMessages.ts
+│       ├── commonMessages.ts
+│       ├── scheduleMessages.ts
+│       ├── updatelMessages.ts
+│
+│
+├── modules/
+│   └── appointment/
+│       ├── appointment.repository.ts
+│       ├── appointment.service.ts
+│
+│   └── client/
+│       ├── client.repository.ts
+│
+│   └── seller/
+│       ├── seller.repository.ts
+│
+├── repositories/
+│   ├── appointment.repository.ts
+│   ├── client.repository.ts
+│   └── seller.repository.ts
+│
+├── services/
+│   ├── openRouterService.ts
+│   └── appointmentService.ts
+│
+│
+├── types/
+│   ├── serviceResults.ts
+│
+│
+├── utils/
+│   ├── date.ts
+│   ├── normalize.ts
+│
+├── graph/
+│   ├── graph.ts
+│   ├── factory.ts
+│   └── nodes/
+│       ├── cancellerNode.ts
+│       ├── checkAvailabityNode.ts
+│       ├── identifyIntentNode.ts
+│       └── messageGeneratorNode.ts
+│       ├── schedulerNode.ts
+│       ├── updaterNode.ts
+│       ├── ValidateClientNode.ts
+│
+├── prompts/
+│   └── v1/
+│       ├── identifyIntent.ts
+│       └── messageGenerator.ts
+│
 tests/
-  └── router.e2e.test.ts  # Real API integration test
-```
-  │   ├── graph.ts          # StateGraph definition with co-located types
-  │   ├── factory.ts        # Graph creation factory
-  │   └── nodes/            # LangGraph nodes (workflow steps)
-  │       ├── outline.node.ts    # Generate article structure + parsing
-  │       ├── research.node.ts   # Research sections in parallel
-  │       ├── write.node.ts      # Write sections + assembly
-  │       └── review.node.ts     # Polish final article
-  ├── services/
-  │   └── openrouter-service.ts  # OpenRouter SDK wrapper (implements LLMClient)
-  └── utils/
-      └── prompt-loader.ts  # Load prompts from template files
-
-prompts/                    # Prompt templates with variables
-  ├── outline.txt           # Section structure generation
-  ├── research.txt          # Research individual sections
-  ├── write-section.txt     # Write section content
-  └── review.txt            # Review and improve
-
-tests/
-  └── article-generator.test.ts  # Graph workflow tests
+└── router.e2e.test.ts
 ```
 
-## Installation
+---
+
+# ⚙️ Tecnologias Utilizadas
+
+## Backend
+
+* Node.js
+* TypeScript
+* Fastify
+
+## IA
+
+* LangChain
+* LangGraph
+* OpenRouter
+
+## Banco
+
+* PostgreSQL
+* pg
+
+## Validação
+
+* Zod
+
+---
+
+# 🐳 Docker
+
+## docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    container_name: postgres
+    restart: always
+    image: postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: pia
+      POSTGRES_USER: postgres
+    volumes:
+      - "./dbdata:/var/lib/postgresql"
+```
+
+---
+
+# 🧠 Como o Sistema Funciona
+
+## 1. Requisição
+
+O vendedor envia uma mensagem:
+
+```txt
+Gostaria de agendar uma reunião de apresentação de produto com João Silva amanhã às 14h
+```
+
+---
+
+## 2. Validação do vendedor
+
+Antes da IA executar:
+
+* verifica se o vendedor existe;
+* evita custo desnecessário;
+* impede execução inválida.
+
+---
+
+## 3. IdentifyIntentNode
+
+A LLM extrai:
+
+* intenção;
+* cliente;
+* data;
+* horário;
+* motivo.
+
+Exemplo:
+
+```json
+{
+  "intent": "schedule",
+  "clientName": "João Silva",
+  "datetime": "2026-05-07T14:00:00.000Z",
+  "reason": "apresentação de produto"
+}
+```
+
+---
+
+## 4. SchedulerNode
+
+Executa regras reais do domínio:
+
+* cliente existe?
+* existem múltiplos clientes?
+* vendedor possui conflito?
+* cliente já possui agenda?
+* horário disponível?
+
+---
+
+## 5. Persistência
+
+Após validações:
+
+* grava reunião no PostgreSQL;
+* retorna confirmação estruturada.
+
+---
+
+## 6. MessageGeneratorNode
+
+Gera resposta amigável ao usuário.
+
+Exemplo:
+
+```txt
+Reunião com João Silva agendada com sucesso para 07/05/2026 às 14h.
+```
+
+---
+
+# 🧱 Conceitos Arquiteturais
+
+## IA não controla regra de negócio
+
+A IA:
+
+* interpreta;
+* extrai contexto;
+* auxilia comunicação.
+
+O backend:
+
+* valida;
+* persiste;
+* decide;
+* governa o fluxo.
+
+Isso reduz:
+
+* hallucinations;
+* inconsistências;
+* comportamento imprevisível.
+
+---
+
+## LangGraph como orquestrador
+
+O LangGraph foi utilizado para:
+
+* state management;
+* conditional edges;
+* workflows inteligentes;
+* evolução futura para multi-agent.
+
+---
+
+## Repositories
+
+O projeto utiliza Repository Pattern:
+
+```txt
+Services → Repositories → PostgreSQL
+```
+
+Benefícios:
+
+* desacoplamento;
+* testabilidade;
+* manutenção;
+* escalabilidade.
+
+---
+
+## Structured Outputs
+
+Todas as respostas da LLM são validadas com Zod:
+
+```typescript
+export const IntentSchema = z.object({
+  intent: z.enum(['schedule', 'cancel', 'unknown', 'update']),
+  datetime: z.string().optional(),
+  clientName: z.string().optional(),
+  reason: z.string().optional(),
+});
+```
+
+Isso reduz drasticamente respostas inválidas.
+
+---
+
+# 🗄️ Banco de Dados
+
+## sellers
+
+```sql
+CREATE TABLE sellers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL
+);
+```
+
+---
+
+## clients
+
+```sql
+CREATE TABLE clients (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL
+);
+```
+
+---
+
+## appointments
+
+```sql
+CREATE TABLE appointments (
+  id SERIAL PRIMARY KEY,
+  datetime TIMESTAMP NOT NULL,
+  reason TEXT,
+  client_id INTEGER REFERENCES clients(id),
+  seller_id INTEGER REFERENCES sellers(id),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
+# 📦 Instalação
+
+## Instalar dependências
 
 ```bash
 npm install
 ```
 
-## Configuration
+---
 
-Create `.env` file:
+# 🔐 Configuração
+
+## Criar arquivo `.env`
 
 ```env
-# OpenRouter Configuration (required)
-OPENROUTER_API_KEY=sk-or-v1-...
-OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
-OPENROUTER_HTTP_REFERER=https://your-site.com
-OPENROUTER_X_TITLE=Article Generator
+OPENROUTER_API_KEY=YOUR_API_KEY
 
-# Model Configuration
-MODEL_TIMEOUT=60000
-MODEL_MAX_RETRIES=3
-
-# Article Configuration
-MIN_SECTIONS=3
-MAX_SECTIONS=8
-TARGET_WORDS_PER_SECTION=200
-
-# Logging
-LOG_LEVEL=info
+DATABASE_URL=postgresql://postgres:mysecretpassword@localhost:5432/pia
 ```
 
-## Usage
+---
 
-### Generate Article
+# ▶️ Execução
+
+## Subir PostgreSQL
 
 ```bash
-# Using topic flag
-npm run generate -- --topic "Test-Driven Development in TypeScript"
-
-# With custom output path
-npm run generate -- --topic "Docker Best Practices" --output my-article.md
+docker-compose up -d
 ```
 
-### Run Tests
+---
+
+## Rodar aplicação
 
 ```bash
-npm test
+npm run dev
 ```
 
-## How It Works
+---
 
-### 1. Outline Node
+# 🧪 Testes
 
-Generates article structure:
-- Title
-- Introduction
-- Sections with key points
-- Conclusion
+## Executar E2E
 
-**State Updates**: `outline`, `currentStep`
-
-### 2. Research Node
-
-Researches all sections **in parallel**:
-```typescript
-const researchPromises = sections.map(section =>
-  llmClient.generate(researchPrompt)
-);
-const results = await Promise.all(researchPromises);
+```bash
+npm run test:e2e
 ```
 
-**State Updates**: `researchResults`, `currentStep`
+---
 
-### 3. Write Sections Node
+# 🔄 Fluxo Completo
 
-Writes each section **sequentially** using research:
-- Loops through sections
-- Uses section research + key points
-- Calculates word count
-- Builds draft article
-
-**State Updates**: `sections`, `draftArticle`, `totalWords`, `currentStep`
-
-### 4. Review Node
-
-Reviews and improves final article:
-- Checks tone and style
-- Improves transitions
-- Ensures consistency
-- Polishes language
-
-**State Updates**: `finalArticle`, `currentStep`
-
-## LangGraph Concepts
-
-### StateGraph
-
-Defines the workflow with typed state:
-```typescript
-const ArticleStateAnnotation = Annotation.Root({
-  topic: Annotation<string>,
-  outline: Annotation<any>,
-  researchResults: Annotation<string[]>,
-  sections: Annotation<any[]>,
-  draftArticle: Annotation<string>,
-  finalArticle: Annotation<string>,
-  totalWords: Annotation<number>,
-  currentStep: Annotation<string>,
-});
+```txt
+Fastify
+   ↓
+Validação vendedor
+   ↓
+LangGraph
+   ↓
+IdentifyIntentNode
+   ↓
+SchedulerNode
+   ↓
+AppointmentService
+   ↓
+Repositories
+   ↓
+PostgreSQL
+   ↓
+MessageGeneratorNode
+   ↓
+Resposta final
 ```
 
-### Node Functions
+---
 
-Each node receives state and returns partial state updates:
-```typescript
-export const createOutlineNode = (llmClient: LLMClient) => {
-  return async (state: GraphState): Promise<Partial<GraphState>> => {
-    const outline = await generateOutline(state.topic);
-    return {
-      outline,
-      currentStep: 'outline_completed',
-    };
-  };
-};
-```
+# 📚 Conceitos Demonstrados
 
-### Graph Construction
+Este projeto demonstra na prática:
 
-```typescript
-const workflow = new StateGraph({ stateSchema: ArticleStateAnnotation })
-  .addNode('generateOutline', outlineNode)
-  .addNode('conductResearch', researchNode)
-  .addNode('writeSections', writeSectionsNode)
-  .addNode('reviewArticle', reviewNode)
-  .addEdge(START, 'generateOutline')
-  .addEdge('generateOutline', 'conductResearch')
-  .addEdge('conductResearch', 'writeSections')
-  .addEdge('writeSections', 'reviewArticle')
-  .addEdge('reviewArticle', END);
+* Engenharia de Prompt
+* LangGraph State Machines
+* Structured Outputs
+* Clean Architecture
+* Repository Pattern
+* Domain-driven workflow
+* IA aplicada a processos corporativos
+* Controle operacional de agentes
 
-return workflow.compile();
-```
+---
 
-## Testing Strategy
+# 🎯 Roadmap
 
-Uses **MockLLMClient** with deterministic responses:
+## Próximos passos
 
-```typescript
-class MockLLMClient implements LLMClient {
-  responses: Map<string, string>;
+* atualização de reuniões;
+* memória conversacional;
+* integração WhatsApp;
+* Google Calendar;
+* Outlook Calendar;
+* multi-agent workflows;
+* RAG;
+* voice assistant.
 
-  async generate(prompt: string): Promise<string> {
-    if (prompt.includes('outline')) return mockOutline;
-    if (prompt.includes('Research')) return mockResearch;
-    if (prompt.includes('Write')) return mockSection;
-    if (prompt.includes('Review')) return mockReview;
-  }
-}
-```
+---
 
-Tests verify:
-- ✅ Complete article generation through graph
-- ✅ Multiple LLM calls in chain
-- ✅ Correct state flow through all nodes
-- ✅ Word count calculation
+# ⚠️ Aprendizados Importantes
 
-## Key Patterns
+Durante o desenvolvimento, alguns pontos ficaram muito claros:
 
-### Single Responsibility Principle
+## ❌ Anti-pattern
 
-- **Nodes**: One transformation per node
-- **Services**: LLM interactions only
-- **Utils**: Reusable helpers (prompt loading)
-- **Config**: Environment management
+Delegar regras críticas para a LLM.
 
-### Dependency Injection
+## ✅ Melhor abordagem
 
-Nodes receive dependencies as parameters:
-```typescript
-createOutlineNode(llmClient: LLMClient, config: ArticleConfig)
-```
+LLM:
 
-### Immutable State
+* interpretação;
+* contexto;
+* linguagem natural.
 
-Nodes return new state objects, never mutate:
-```typescript
-return {
-  ...state,
-  outline: newOutline,
-};
-```
+Backend:
 
-### Prompt Templates
+* governança;
+* consistência;
+* regras;
+* persistência.
 
-Prompts stored in files, not code:
-```typescript
-const prompt = await PromptLoader.load('outline', {
-  topic: state.topic,
-  minSections: config.minSections,
-  maxSections: config.maxSections,
-});
-```
+Esse é provavelmente o principal aprendizado arquitetural do projeto.
 
-## Learning Objectives
+---
+🔮 Evolução Futura
 
-1. **Prompt Chaining**: Build complex outputs from simple steps
-2. **LangGraph**: State management in LLM workflows
-3. **Parallel Execution**: Research sections concurrently
-4. **Sequential Processing**: Write sections in order
-5. **State Transitions**: Track progress through workflow
-6. **Testing**: Mock LLMs for deterministic tests
+O projeto foi desenhado para evoluir para um cenário muito mais avançado.
 
-## Node Version
+Próximas evoluções
+memória conversacional;
+integração WhatsApp;
+integração Google Calendar;
+integração Outlook;
+RAG;
+multi-agent workflows;
+voice assistant;
+dashboards inteligentes;
+geração dinâmica de queries SQL;
+self-healing SQL agents.
+🧠 Próximo Nível Arquitetural
 
-Requires Node.js >= 22.0.0 for TypeScript strip-types support.
+Hoje:
 
-## License
+a LLM entende intenção;
+o backend executa funções pré-definidas.
+
+Próxima evolução:
+
+a LLM quebrará perguntas complexas;
+gerará queries SQL dinamicamente;
+validará queries;
+corrigirá queries inválidas;
+executará consultas;
+construirá dashboards analíticos em tempo real.
+👨‍💻 Autor
+
+Vicente Pereira Pinto
+
+Analista de Sistemas e Desenvolvedor Fullstack
+Aprendiz de Engenharia de IA Aplicada
+
+🙏 Créditos
+
+Projeto inspirado na excelente aula de Erick Wendel no módulo 2 da formação da UNIPDS.
+---
+
+# 📄 Licença
 
 MIT
+
+```
+```

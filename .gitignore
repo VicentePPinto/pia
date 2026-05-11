@@ -9,4 +9,3 @@ outputs/
 # LangGraph API
 .langgraph_api
 
-/src/generated/prisma
